@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "lZx5kjOBXcc=",
+  "success": true,
+  "projectFilePath": "/home/ghostmikz/projects/BlazorTest/BlazorTest.csproj",
+  "expectedPackageFiles": [
+    "/home/ghostmikz/.nuget/packages/microsoft.aspnetcore.app.internal.assets/10.0.1/microsoft.aspnetcore.app.internal.assets.10.0.1.nupkg.sha512"
+  ],
+  "logs": []
+}

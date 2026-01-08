@@ -1,0 +1,105 @@
+﻿@page "/login"
+@using BlazorTest.Services
+@using BlazorTest.Models
+@rendermode InteractiveServer
+@inject TurnstileService CaptchaService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>Login</PageTitle>
+
+<div class="login-container" style="max-width: 400px; margin: auto; padding-top: 50px;">
+    <h3>Login to BlazorTest</h3>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
+
+    <div class="mb-3">
+        <label>Username</label>
+        <input @bind="username" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Password</label>
+        <input type="password" @bind="password" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <div class="cf-turnstile" id="turnstile-container"></div>
+    </div>
+
+    <button class="btn btn-primary w-100" 
+            disabled="@(!isHuman)" 
+            @onclick="AttemptLogin">
+        @(isHuman ? "Sign In" : "Waiting for Captcha...")
+    </button>
+    <button type="button" @onclick='() => CallbackFromJS("test-token")'>
+    DEBUG: Click to skip Captcha
+</button>
+</div>
+
+@code {
+    private string username = "";
+    private string password = "";
+    private string errorMessage = "";
+    private bool isHuman = false;
+    private string captchaToken = "";
+    
+    private DotNetObjectReference<Login>? objRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            
+            await JS.InvokeVoidAsync("initCaptcha", objRef, "0x4AAAAAACLNN4t7ZDjZJiMe");
+        }
+    }
+
+    [JSInvokable("CallbackFromJS")]
+    public async Task CallbackFromJS(string token)
+    {
+        Console.WriteLine("Method CallbackFromJS was called!"); 
+        this.captchaToken = token;
+        this.isHuman = true;
+        
+        await Task.Yield();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AttemptLogin()
+    {
+        errorMessage = ""; 
+
+        try 
+        {
+            bool verified = await CaptchaService.IsUserHuman(captchaToken);
+
+            if (!verified)
+            {
+                errorMessage = "Security check failed. Please refresh and try again.";
+                isHuman = false; 
+                return;
+            }
+
+            if (username == "admin" && password == "password") 
+            {
+                Nav.NavigateTo("/");
+            }
+            else 
+            {
+                errorMessage = "Invalid username or password.";
+            }
+        }
+        catch (Exception)
+        {
+            errorMessage = "Verification server is down. Please try again later.";
+        }
+    }
+
+    public void Dispose() => objRef?.Dispose();
+}
